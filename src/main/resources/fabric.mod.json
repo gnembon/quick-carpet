@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "quick-carpet",
+  "version": "1.0.0",
+
+  "name": "Quick Carpet",
+  "description": "Tiny subset of most useful carpet features that is easy to maintain",
+  "authors": [
+    "gnembon"
+  ],
+  "contact": {
+    "homepage": "https://github.com/gnembon/quick-carpet",
+    "sources": "https://github.com/gnembon/quick-carpet"
+  },
+
+  "license": "GNU LGPL V3",
+  "icon": "assets/carpet/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+    ]
+  },
+  "mixins": [
+    "carpet.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.7.1",
+    "minecraft": "1.15.x"
+  },
+  "suggests": {
+    "flamingo": "*"
+  }
+}

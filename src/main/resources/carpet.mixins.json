@@ -1,0 +1,35 @@
+{
+  "required": true,
+  "package": "carpet.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "CommandManagerMixin",
+    "MinecraftServer_coreMixin",
+    "FillCommandMixin",
+    "CloneCommandMixin",
+    "SetBlockCommandMixin",
+    "World_fillUpdatesMixin",
+    "WorldChunk_fillUpdatesMixin",
+    "StructureBlockBlockEntity_fillUpdatesMixin",
+    "Structure_fillUpdatesMixin",
+    "ServerPlayNetworkHandler_interactionUpdatesMixin",
+    "MinecraftServer_tickspeedMixin",
+    "ServerWorld_fakePlayersMixin",
+    "WeightedPickerEntryMixin",
+    "PlayerManagerMixin",
+    "ServerChunkManagerMixin",
+    "HopperBlockEntityMixin",
+    "ExplosionMixin"
+  ],
+  "client": [
+    "RenderTickCounter_tickSpeedMixin",
+    "MinecraftClientMixin",
+    "IntegratedServerMixin"
+  ],
+  "server": [
+    "MinecraftDedicatedServerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
