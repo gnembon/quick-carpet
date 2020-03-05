@@ -116,7 +116,7 @@ public class SpawnReporter
             if (!(entity instanceof MobEntity) || !((MobEntity)entity).isPersistent())
             {
                 EntityType type = entity.getType();
-                BlockPos pos = entity.getBlockPos();
+                BlockPos pos = entity.getSenseCenterPos();
                 lst.add( Messenger.c(
                         "w  - ",
                         Messenger.tp("wb",pos),
@@ -207,12 +207,12 @@ public class SpawnReporter
                             
                             for (int i = 0; i < 20; ++i)
                             {
-                                if (SpawnRestriction.canSpawn(mob.getType(),mob.getEntityWorld(), SpawnType.NATURAL, mob.getBlockPos(), mob.getEntityWorld().random))
+                                if (SpawnRestriction.canSpawn(mob.getType(),mob.getEntityWorld(), SpawnType.NATURAL, mob.getSenseCenterPos(), mob.getEntityWorld().random))
                                 {
                                     will_spawn += 1;
                                 }
                             }
-                            mob.initialize(worldIn, worldIn.getLocalDifficulty(new BlockPos(mob)), SpawnType.NATURAL, null, null);
+                            mob.initialize(worldIn, worldIn.getLocalDifficulty(mob.getSenseCenterPos()), SpawnType.NATURAL, null, null);
                             // the code invokes onInitialSpawn after getCanSpawHere
                             fits = fits1 && worldIn.doesNotCollide(mob);
                             if (fits)

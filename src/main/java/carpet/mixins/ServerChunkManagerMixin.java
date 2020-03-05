@@ -40,7 +40,6 @@ public abstract class ServerChunkManagerMixin
                              boolean boolean_1,
                              boolean boolean_2,
                              int int_1,
-                             BlockPos blockPos_1,
                              boolean boolean_3,
                              int int_2,
                              EntityCategory[] entityCategorys_1,
