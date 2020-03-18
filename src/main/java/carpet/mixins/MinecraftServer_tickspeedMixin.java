@@ -23,7 +23,7 @@ public abstract class MinecraftServer_tickspeedMixin
 
     @Shadow private long timeReference;
 
-    @Shadow private long field_4557;
+    @Shadow private long lastTimeReference;
 
     @Shadow @Final private static Logger LOGGER;
 
@@ -35,8 +35,6 @@ public abstract class MinecraftServer_tickspeedMixin
 
     @Shadow protected abstract boolean shouldKeepTicking();
 
-    @Shadow private boolean field_19249;
-
     @Shadow private long field_19248;
 
     @Shadow protected abstract void method_16208();
@@ -44,6 +42,8 @@ public abstract class MinecraftServer_tickspeedMixin
     @Shadow private volatile boolean loading;
 
     @Shadow protected abstract void startMonitor(TickDurationMonitor monitor);
+
+    @Shadow private boolean waitingForNextTick;
 
     private float carpetMsptAccum = 0.0f;
 
@@ -74,7 +74,7 @@ public abstract class MinecraftServer_tickspeedMixin
             if (TickSpeed.time_warp_start_time != 0 && TickSpeed.continueWarp((MinecraftServer) (Object)this))
             {
                 //making sure server won't flop after the warp or if the warp is interrupted
-                this.timeReference = this.field_4557 = Util.getMeasuringTimeMs();
+                this.timeReference = lastTimeReference = Util.getMeasuringTimeMs();
                 carpetMsptAccum = TickSpeed.mspt;
             }
             else
@@ -92,12 +92,12 @@ public abstract class MinecraftServer_tickspeedMixin
             }
             //end tick deciding
             //smoothed out delay to include mcpt component. With 50L gives defaults.
-            if (long_1 > /*2000L*/1000L+20*TickSpeed.mspt && this.timeReference - this.field_4557 >= /*15000L*/10000L+100*TickSpeed.mspt)
+            if (long_1 > /*2000L*/1000L+20*TickSpeed.mspt && this.timeReference - this.lastTimeReference >= /*15000L*/10000L+100*TickSpeed.mspt)
             {
                 long long_2 = (long)(long_1 / TickSpeed.mspt);//50L;
                 LOGGER.warn("Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind", long_1, long_2);
                 this.timeReference += (long)(long_2 * TickSpeed.mspt);//50L;
-                this.field_4557 = this.timeReference;
+                this.lastTimeReference = this.timeReference;
             }
 
             this.timeReference += msThisTick;//50L;
@@ -107,7 +107,7 @@ public abstract class MinecraftServer_tickspeedMixin
             this.profiler.push("tick");
             this.tick(TickSpeed.time_warp_start_time != 0 ? ()->true : this::shouldKeepTicking);
             this.profiler.swap("nextTickWait");
-            this.field_19249 = true;
+            this.waitingForNextTick = true;
             this.field_19248 = Math.max(Util.getMeasuringTimeMs() + /*50L*/ msThisTick, this.timeReference);
             this.method_16208();
             this.profiler.pop();
