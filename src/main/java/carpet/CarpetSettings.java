@@ -13,7 +13,7 @@ import static carpet.settings.RuleCategory.CREATIVE;
 @SuppressWarnings("CanBeFinal")
 public class CarpetSettings
 {
-    public static final String carpetVersion = "1.0.1";
+    public static final String carpetVersion = "1.0.2";
     public static final Logger LOG = LogManager.getLogger();
     public static boolean impendingFillSkipUpdates = false;
 
