@@ -10,8 +10,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.command.arguments.BlockPosArgumentType;
 import net.minecraft.command.arguments.DimensionArgumentType;
-import net.minecraft.entity.EntityCategory;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.dimension.DimensionType;
 
@@ -48,19 +49,19 @@ public class SpawnCommand
                 then(literal("entities").
                         executes( (c) -> generalMobcaps(c.getSource()) ).
                         then(argument("type", string()).
-                                suggests( (c, b)->suggestMatching(Arrays.stream(EntityCategory.values()).map(EntityCategory::getName), b)).
+                                suggests( (c, b)->suggestMatching(Arrays.stream(SpawnGroup.values()).map(SpawnGroup::getName), b)).
                                 executes( (c) -> listEntitiesOfType(c.getSource(), getString(c, "type")))));
 
         dispatcher.register(literalargumentbuilder);
     }
 
-    private static EntityCategory getCategory(String string) throws CommandSyntaxException
+    private static SpawnGroup getCategory(String string) throws CommandSyntaxException
     {
-        if (!Arrays.stream(EntityCategory.values()).map(EntityCategory::getName).collect(Collectors.toSet()).contains(string))
+        if (!Arrays.stream(SpawnGroup.values()).map(SpawnGroup::getName).collect(Collectors.toSet()).contains(string))
         {
-            throw new SimpleCommandExceptionType(Messenger.c("r Wrong mob type: "+string+" should be "+ Arrays.stream(EntityCategory.values()).map(EntityCategory::getName).collect(Collectors.joining(", ")))).create();
+            throw new SimpleCommandExceptionType(Messenger.c("r Wrong mob type: "+string+" should be "+ Arrays.stream(SpawnGroup.values()).map(SpawnGroup::getName).collect(Collectors.joining(", ")))).create();
         }
-        return EntityCategory.valueOf(string.toUpperCase());
+        return SpawnGroup.valueOf(string.toUpperCase());
     }
 
 
@@ -74,20 +75,20 @@ public class SpawnCommand
 
     private static int generalMobcaps(ServerCommandSource source)
     {
-        Messenger.send(source, SpawnReporter.printMobcapsForDimension(source.getWorld().getDimension().getType(), true));
+        Messenger.send(source, SpawnReporter.printMobcapsForDimension(source.getWorld(), true));
         return 1;
     }
 
 
     private static int setMobcaps(ServerCommandSource source, int hostile_cap)
     {
-        double desired_ratio = (double)hostile_cap/ EntityCategory.MONSTER.getSpawnCap();
+        double desired_ratio = (double)hostile_cap/ SpawnGroup.MONSTER.getCapacity();
         SpawnReporter.mobcap_exponent = 4.0*Math.log(desired_ratio)/Math.log(2.0);
         Messenger.m(source, String.format("gi Mobcaps for hostile mobs changed to %d, other groups will follow", hostile_cap));
         return 1;
     }
 
-    private static int mobcapsForDimension(ServerCommandSource source, DimensionType dim)
+    private static int mobcapsForDimension(ServerCommandSource source, ServerWorld dim)
     {
         Messenger.send(source, SpawnReporter.printMobcapsForDimension(dim, true));
         return 1;
@@ -95,7 +96,7 @@ public class SpawnCommand
 
     private static int listEntitiesOfType(ServerCommandSource source, String mobtype) throws CommandSyntaxException
     {
-        EntityCategory cat = getCategory(mobtype);
+        SpawnGroup cat = getCategory(mobtype);
         Messenger.send(source, SpawnReporter.printEntitiesByType(cat, source.getWorld()));
         return 1;
     }

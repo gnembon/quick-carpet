@@ -19,9 +19,12 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.GameMode;
+import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 
 import java.util.Arrays;
@@ -169,9 +172,9 @@ public class PlayerCommand
                 () -> RotationArgumentType.getRotation(context, "direction").toAbsoluteRotation(context.getSource()),
                 source::getRotation
         );
-        DimensionType dim = tryGetArg(
-                () -> DimensionArgumentType.getDimensionArgument(context, "dimension"),
-                () -> source.getWorld().dimension.getType()
+        RegistryKey<World> dim = tryGetArg(
+                () -> DimensionArgumentType.getDimensionArgument(context, "dimension").getRegistryKey(),
+                () -> source.getWorld().getRegistryKey() // dimension.getType()
         );
         GameMode mode = GameMode.CREATIVE;
         try

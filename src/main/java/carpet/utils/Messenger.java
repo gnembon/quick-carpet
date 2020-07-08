@@ -1,15 +1,20 @@
 package carpet.utils;
 
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.text.LiteralText;
-import net.minecraft.util.Formatting;
 import net.minecraft.text.BaseText;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Style;
+import net.minecraft.text.TextColor;
+import net.minecraft.util.Util;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.Formatting;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,66 +22,76 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Messenger
 {
     public static final Logger LOG = LogManager.getLogger();
 
-    /*
-     messsage: "desc me ssa ge"
-     desc contains:
-     i = italic
-     s = strikethrough
-     u = underline
-     b = bold
-     o = obfuscated
-
-     w = white
-     y = yellow
-     m = magenta (light purple)
-     r = red
-     c = cyan (aqua)
-     l = lime (green)
-     t = light blue (blue)
-     f = dark gray
-     g = gray
-     d = gold
-     p = dark purple (purple)
-     n = dark red (brown)
-     q = dark aqua
-     e = dark green
-     v = dark blue (navy)
-     k = black
-
-     / = action added to the previous component
-     */
-
-    private static BaseText _applyStyleToTextComponent(BaseText comp, String style)
+    private static final Pattern colorExtract = Pattern.compile("#([0-9a-fA-F]{6})");
+    public enum CarpetFormatting
     {
-        //could be rewritten to be more efficient
-        comp.getStyle().setItalic(style.indexOf('i')>=0);
-        comp.getStyle().setStrikethrough(style.indexOf('s')>=0);
-        comp.getStyle().setUnderline(style.indexOf('u')>=0);
-        comp.getStyle().setBold(style.indexOf('b')>=0);
-        comp.getStyle().setObfuscated(style.indexOf('o')>=0);
-        comp.getStyle().setColor(Formatting.WHITE);
-        if (style.indexOf('w')>=0) comp.getStyle().setColor(Formatting.WHITE); // not needed
-        if (style.indexOf('y')>=0) comp.getStyle().setColor(Formatting.YELLOW);
-        if (style.indexOf('m')>=0) comp.getStyle().setColor(Formatting.LIGHT_PURPLE);
-        if (style.indexOf('r')>=0) comp.getStyle().setColor(Formatting.RED);
-        if (style.indexOf('c')>=0) comp.getStyle().setColor(Formatting.AQUA);
-        if (style.indexOf('l')>=0) comp.getStyle().setColor(Formatting.GREEN);
-        if (style.indexOf('t')>=0) comp.getStyle().setColor(Formatting.BLUE);
-        if (style.indexOf('f')>=0) comp.getStyle().setColor(Formatting.DARK_GRAY);
-        if (style.indexOf('g')>=0) comp.getStyle().setColor(Formatting.GRAY);
-        if (style.indexOf('d')>=0) comp.getStyle().setColor(Formatting.GOLD);
-        if (style.indexOf('p')>=0) comp.getStyle().setColor(Formatting.DARK_PURPLE);
-        if (style.indexOf('n')>=0) comp.getStyle().setColor(Formatting.DARK_RED);
-        if (style.indexOf('q')>=0) comp.getStyle().setColor(Formatting.DARK_AQUA);
-        if (style.indexOf('e')>=0) comp.getStyle().setColor(Formatting.DARK_GREEN);
-        if (style.indexOf('v')>=0) comp.getStyle().setColor(Formatting.DARK_BLUE);
-        if (style.indexOf('k')>=0) comp.getStyle().setColor(Formatting.BLACK);
-        return comp;
+        ITALIC      ('i', (s, f) -> s.withItalic(true)),
+        STRIKE      ('s', (s, f) -> s.withFormatting(Formatting.STRIKETHROUGH)),
+        UNDERLINE   ('u', (s, f) -> s.withFormatting(Formatting.UNDERLINE)),
+        BOLD        ('b', (s, f) -> s.withBold(true)),
+        OBFUSCATE   ('o', (s, f) -> s.withFormatting(Formatting.OBFUSCATED)),
+
+        WHITE       ('w', (s, f) -> s.withColor(Formatting.WHITE)),
+        YELLOW      ('y', (s, f) -> s.withColor(Formatting.YELLOW)),
+        LIGHT_PURPLE('m', (s, f) -> s.withColor(Formatting.LIGHT_PURPLE)), // magenta
+        RED         ('r', (s, f) -> s.withColor(Formatting.RED)),
+        AQUA        ('c', (s, f) -> s.withColor(Formatting.AQUA)), // cyan
+        GREEN       ('l', (s, f) -> s.withColor(Formatting.GREEN)), // lime
+        BLUE        ('t', (s, f) -> s.withColor(Formatting.BLUE)), // light blue, teal
+        DARK_GRAY   ('f', (s, f) -> s.withColor(Formatting.DARK_GRAY)),
+        GRAY        ('g', (s, f) -> s.withColor(Formatting.GRAY)),
+        GOLD        ('d', (s, f) -> s.withColor(Formatting.GOLD)),
+        DARK_PURPLE ('p', (s, f) -> s.withColor(Formatting.DARK_PURPLE)), // purple
+        DARK_RED    ('n', (s, f) -> s.withColor(Formatting.DARK_RED)),  // brown
+        DARK_AQUA   ('q', (s, f) -> s.withColor(Formatting.DARK_AQUA)),
+        DARK_GREEN  ('e', (s, f) -> s.withColor(Formatting.DARK_GREEN)),
+        DARK_BLUE   ('v', (s, f) -> s.withColor(Formatting.DARK_BLUE)), // navy
+        BLACK       ('k', (s, f) -> s.withColor(Formatting.BLACK)),
+
+        COLOR       ('#', (s, f) -> {
+            TextColor color = TextColor.parse("#"+f);
+            return color == null ? s : s.withColor(color);
+        }, s -> {
+            Matcher m = colorExtract.matcher(s);
+            return m.find() ? m.group(1) : null;
+        }),
+        ;
+
+        public char code;
+        public BiFunction<Style, String, Style> applier;
+        public Function<String, String> container;
+        CarpetFormatting(char code, BiFunction<Style, String, Style> applier)
+        {
+            this(code, applier, s -> s.indexOf(code)>=0?Character.toString(code):null);
+        }
+        CarpetFormatting(char code, BiFunction<Style, String, Style> applier, Function<String, String> container)
+        {
+            this.code = code;
+            this.applier = applier;
+            this.container = container;
+        }
+        public Style apply(String format, Style previous)
+        {
+            String fmt;
+            if ((fmt = container.apply(format))!= null) return applier.apply(previous, fmt);
+            return previous;
+        }
+    };
+
+    public static Style parseStyle(String style)
+    {
+        Style myStyle= Style.EMPTY.withColor(Formatting.WHITE);
+        for (CarpetFormatting cf: CarpetFormatting.values()) myStyle = cf.apply(style, myStyle);
+        return myStyle;
     }
     public static String heatmap_color(double actual, double reference)
     {
@@ -86,6 +101,23 @@ public class Messenger
         if (actual > 0.8D*reference) color = "r";
         if (actual > reference) color = "m";
         return color;
+    }
+    public static String creatureTypeColor(SpawnGroup type)
+    {
+        switch (type)
+        {
+            case MONSTER:
+                return "n";
+            case CREATURE:
+                return "e";
+            case AMBIENT:
+                return "f";
+            case WATER_CREATURE:
+                return "v";
+            case WATER_AMBIENT:
+                return "q";
+        }
+        return "w";
     }
 
     private static BaseText _getChatComponentFromDesc(String message, BaseText previous_message)
@@ -98,36 +130,49 @@ public class Messenger
         {
             message = "w"+message;
         }
-        String[] parts = message.split("\\s", 2);
-        String desc = parts[0];
+        int limit = message.indexOf(' ');
+        String desc = message;
         String str = "";
-        if (parts.length > 1) str = parts[1];
+        if (limit >= 0)
+        {
+            desc = message.substring(0, limit);
+            str = message.substring(limit+1);
+        }
         if (desc.charAt(0) == '/') // deprecated
         {
             if (previous_message != null)
-                previous_message.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, message));
+                previous_message.setStyle(
+                        previous_message.getStyle().withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, message))
+                );
             return previous_message;
         }
         if (desc.charAt(0) == '?')
         {
             if (previous_message != null)
-                previous_message.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, message.substring(1)));
+                previous_message.setStyle(
+                        previous_message.getStyle().withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, message.substring(1)))
+                );
             return previous_message;
         }
         if (desc.charAt(0) == '!')
         {
             if (previous_message != null)
-                previous_message.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, message.substring(1)));
+                previous_message.setStyle(
+                        previous_message.getStyle().withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, message.substring(1)))
+                );
             return previous_message;
         }
         if (desc.charAt(0) == '^')
         {
             if (previous_message != null)
-                previous_message.getStyle().setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, c(message.substring(1))));
+                previous_message.setStyle(
+                        previous_message.getStyle().setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, c(message.substring(1))))
+                );
             return previous_message;
         }
         BaseText txt = new LiteralText(str);
-        return _applyStyleToTextComponent(txt, desc);
+        txt.setStyle(parseStyle(desc));
+        return txt;
     }
     public static BaseText tp(String desc, Vec3d pos) { return tp(desc, pos.x, pos.y, pos.z); }
     public static BaseText tp(String desc, BlockPos pos) { return tp(desc, pos.getX(), pos.getY(), pos.getZ()); }
@@ -208,11 +253,12 @@ public class Messenger
     //message source
     public static void m(ServerCommandSource source, Object ... fields)
     {
-        source.sendFeedback(Messenger.c(fields),source.getMinecraftServer().getWorld(DimensionType.OVERWORLD) != null);
+        if (source != null)
+            source.sendFeedback(Messenger.c(fields),source.getMinecraftServer() != null && source.getMinecraftServer().getWorld(World.OVERWORLD) != null); //OW
     }
     public static void m(PlayerEntity player, Object ... fields)
     {
-        player.sendMessage(Messenger.c(fields));
+        player.sendSystemMessage(Messenger.c(fields), Util.NIL_UUID);
     }
 
     /*
@@ -247,13 +293,16 @@ public class Messenger
     public static BaseText s(String text, String style)
     {
         BaseText message = new LiteralText(text);
-        _applyStyleToTextComponent(message, style);
+        message.setStyle(parseStyle(style));
         return message;
     }
 
+
+
+
     public static void send(PlayerEntity player, Collection<BaseText> lines)
     {
-        lines.forEach(player::sendMessage);
+        lines.forEach(message -> player.sendSystemMessage(message, Util.NIL_UUID));
     }
     public static void send(ServerCommandSource source, Collection<BaseText> lines)
     {
@@ -265,21 +314,21 @@ public class Messenger
     {
         if (server == null)
             LOG.error("Message not delivered: "+message);
-        server.sendMessage(new LiteralText(message));
+        server.sendSystemMessage(new LiteralText(message), Util.NIL_UUID);
         BaseText txt = c("gi "+message);
         for (PlayerEntity entityplayer : server.getPlayerManager().getPlayerList())
         {
-            entityplayer.sendMessage(txt);
+            entityplayer.sendSystemMessage(txt, Util.NIL_UUID);
         }
     }
     public static void print_server_message(MinecraftServer server, BaseText message)
     {
         if (server == null)
             LOG.error("Message not delivered: "+message.getString());
-        server.sendMessage(message);
+        server.sendSystemMessage(message, Util.NIL_UUID);
         for (PlayerEntity entityplayer : server.getPlayerManager().getPlayerList())
         {
-            entityplayer.sendMessage(message);
+            entityplayer.sendSystemMessage(message, Util.NIL_UUID);
         }
     }
 }

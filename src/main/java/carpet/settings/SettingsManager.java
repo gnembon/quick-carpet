@@ -17,6 +17,7 @@ import net.minecraft.server.ServerTask;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.BaseText;
+import net.minecraft.util.WorldSavePath;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.TriConsumer;
 
@@ -136,7 +137,7 @@ public class SettingsManager
 
     private File getFile()
     {
-        return server.getLevelStorage().resolveFile(server.getLevelName(), identifier+".conf");
+        return server.getSavePath(WorldSavePath.ROOT).resolve(identifier+".conf").toFile();
     }
 
     public void disableBooleanCommands()

@@ -12,7 +12,9 @@ import net.minecraft.server.ServerTask;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.GameMode;
+import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import carpet.utils.Messenger;
 
@@ -21,10 +23,10 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
 {
     public Runnable fixStartingPosition = () -> {};
 
-    public static EntityPlayerMPFake createFake(String username, MinecraftServer server, double d0, double d1, double d2, double yaw, double pitch, DimensionType dimension, GameMode gamemode)
+    public static EntityPlayerMPFake createFake(String username, MinecraftServer server, double d0, double d1, double d2, double yaw, double pitch, RegistryKey<World> dimensionId, GameMode gamemode)
     {
         //prolly half of that crap is not necessary, but it works
-        ServerWorld worldIn = server.getWorld(dimension);
+        ServerWorld worldIn = server.getWorld(dimensionId);
         ServerPlayerInteractionManager interactionManagerIn = new ServerPlayerInteractionManager(worldIn);
         GameProfile gameprofile = server.getUserCache().findByName(username);
         if (gameprofile == null)
@@ -35,35 +37,22 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         {
             gameprofile = SkullBlockEntity.loadProperties(gameprofile);
         }
-        EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, gameprofile, interactionManagerIn);
+        EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, gameprofile, interactionManagerIn, false);
         instance.fixStartingPosition = () -> instance.refreshPositionAndAngles(d0, d1, d2, (float) yaw, (float) pitch);
         server.getPlayerManager().onPlayerConnect(new NetworkManagerFake(NetworkSide.SERVERBOUND), instance);
-        if (instance.dimension != dimension) //player was logged in in a different dimension
-        {
-            ServerWorld old_world = server.getWorld(instance.dimension);
-            instance.dimension = dimension;
-            old_world.removePlayer(instance);
-            instance.removed = false;
-            //worldIn.spawnEntity(instance);
-            instance.setWorld(worldIn);
-            server.getPlayerManager().sendWorldInfo(instance, worldIn);
-            instance.networkHandler.requestTeleport(d0, d1, d2, (float) yaw, (float) pitch);
-            instance.interactionManager.setWorld(worldIn);
-            worldIn.onPlayerChangeDimension(instance);
-        }
+        instance.teleport(worldIn, d0, d1, d2, (float)yaw, (float)pitch);
         instance.setHealth(20.0F);
         instance.removed = false;
-        instance.networkHandler.requestTeleport(d0, d1, d2, (float) yaw, (float) pitch);
         instance.stepHeight = 0.6F;
-        interactionManagerIn.setGameMode(gamemode);
-        server.getPlayerManager().sendToDimension(new EntitySetHeadYawS2CPacket(instance, (byte) (instance.headYaw * 256 / 360)), instance.dimension);
-        server.getPlayerManager().sendToDimension(new EntityPositionS2CPacket(instance), instance.dimension);
+        interactionManagerIn.method_30118(gamemode); // setGameMode
+        server.getPlayerManager().sendToDimension(new EntitySetHeadYawS2CPacket(instance, (byte) (instance.headYaw * 256 / 360)), dimensionId);//instance.dimension);
+        server.getPlayerManager().sendToDimension(new EntityPositionS2CPacket(instance), dimensionId);//instance.dimension);
         instance.getServerWorld().getChunkManager().updateCameraPosition(instance);
         instance.dataTracker.set(PLAYER_MODEL_PARTS, (byte) 0x7f); // show all model layers (incl. capes)
         return instance;
     }
 
-    private EntityPlayerMPFake(MinecraftServer server, ServerWorld worldIn, GameProfile profile, ServerPlayerInteractionManager interactionManagerIn)
+    private EntityPlayerMPFake(MinecraftServer server, ServerWorld worldIn, GameProfile profile, ServerPlayerInteractionManager interactionManagerIn, boolean shadow)
     {
         super(server, worldIn, profile, interactionManagerIn);
     }

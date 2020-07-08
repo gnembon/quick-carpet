@@ -23,7 +23,7 @@ public class WoolTool
     public static DyeColor getWoolColorAtPosition(World worldIn, BlockPos pos)
     {
         BlockState state = worldIn.getBlockState(pos);
-        if (state.getMaterial() != Material.WOOL || !state.isSimpleFullBlock(worldIn, pos))
+        if (state.getMaterial() != Material.WOOL || !state.isSolidBlock(worldIn, pos))
             return null;
         return Material2Dye.get(state.getTopMaterialColor(worldIn, pos));
     }

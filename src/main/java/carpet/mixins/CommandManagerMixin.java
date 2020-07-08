@@ -25,7 +25,7 @@ public abstract class CommandManagerMixin
     private CommandDispatcher<ServerCommandSource> dispatcher;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void onRegister(boolean boolean_1, CallbackInfo ci) {
+    private void onRegister(CommandManager.RegistrationEnvironment environment, CallbackInfo ci) {
         CarpetServer.registerCarpetCommands(this.dispatcher);
     }
 
@@ -42,6 +42,7 @@ public abstract class CommandManagerMixin
         CarpetSettings.impendingFillSkipUpdates = false;
     }
 
+    @SuppressWarnings("UnresolvedMixinReference")
     @Redirect(method = "execute", at = @At(
             value = "INVOKE",
             target = "Lorg/apache/logging/log4j/Logger;isDebugEnabled()Z"
