@@ -44,7 +44,7 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         instance.setHealth(20.0F);
         instance.removed = false;
         instance.stepHeight = 0.6F;
-        interactionManagerIn.method_30118(gamemode); // setGameMode
+        interactionManagerIn.setGameMode(gamemode);
         server.getPlayerManager().sendToDimension(new EntitySetHeadYawS2CPacket(instance, (byte) (instance.headYaw * 256 / 360)), dimensionId);//instance.dimension);
         server.getPlayerManager().sendToDimension(new EntityPositionS2CPacket(instance), dimensionId);//instance.dimension);
         instance.getServerWorld().getChunkManager().updateCameraPosition(instance);

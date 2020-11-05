@@ -21,6 +21,7 @@ import net.minecraft.world.Heightmap;
 import net.minecraft.world.SpawnHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.SpawnSettings;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
@@ -121,7 +122,7 @@ public class SpawnReporter
     {
         List<BaseText> lst = new ArrayList<>();
         lst.add( Messenger.s(String.format("Loaded entities for %s class:", get_type_string(cat))));
-        for (Entity entity : ((ServerWorld)worldIn).getEntities(null, (e) -> e.getType().getSpawnGroup()==cat))
+        for (Entity entity : ((ServerWorld)worldIn).getEntitiesByType(null, (e) -> e.getType().getSpawnGroup()==cat))
         {
             if (!(entity instanceof MobEntity) || !((MobEntity)entity).isPersistent())
             {
@@ -158,7 +159,7 @@ public class SpawnReporter
         }
         if (entity instanceof OcelotEntity)
         {
-            for (Entity e: entity.getEntityWorld().getEntities(entity, entity.getBoundingBox()))
+            for (Entity e: entity.getEntityWorld().getOtherEntities(entity, entity.getBoundingBox()))
             {
                 e.remove();
             }
@@ -167,8 +168,8 @@ public class SpawnReporter
     }
 
     // yeeted from SpawnHelper - temporary fix
-    private static List<Biome.SpawnEntry> method_29950(ServerWorld serverWorld, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, SpawnGroup spawnGroup, BlockPos blockPos, /*@Nullable*/ Biome biome) {
-        return spawnGroup == SpawnGroup.MONSTER && serverWorld.getBlockState(blockPos.down()).getBlock() == Blocks.NETHER_BRICKS && structureAccessor.method_28388(blockPos, false, StructureFeature.FORTRESS).hasChildren() ? StructureFeature.FORTRESS.getMonsterSpawns() : chunkGenerator.getEntitySpawnList(biome != null ? biome : serverWorld.getBiome(blockPos), structureAccessor, spawnGroup, blockPos);
+    private static List<SpawnSettings.SpawnEntry> method_29950(ServerWorld serverWorld, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, SpawnGroup spawnGroup, BlockPos blockPos, /*@Nullable*/ Biome biome) {
+        return spawnGroup == SpawnGroup.MONSTER && serverWorld.getBlockState(blockPos.down()).getBlock() == Blocks.NETHER_BRICKS && structureAccessor.getStructureAt(blockPos, false, StructureFeature.FORTRESS).hasChildren() ? StructureFeature.FORTRESS.getMonsterSpawns() : chunkGenerator.getEntitySpawnList(biome != null ? biome : serverWorld.getBiome(blockPos), structureAccessor, spawnGroup, blockPos);
     }
 
     public static List<BaseText> report(BlockPos pos, ServerWorld worldIn)
@@ -186,10 +187,10 @@ public class SpawnReporter
         for (SpawnGroup enumcreaturetype : SpawnGroup.values())
         {
             String type_code = String.format("%s", enumcreaturetype).substring(0, 3);
-            List<Biome.SpawnEntry> lst = method_29950(worldIn, worldIn.getStructureAccessor(), worldIn.getChunkManager().getChunkGenerator(), enumcreaturetype, pos, worldIn.getBiome(pos));//  ((ChunkGenerator)worldIn.getChunkManager().getChunkGenerator()).getEntitySpawnList(, worldIn.getStructureAccessor(), enumcreaturetype, pos);
+            List<SpawnSettings.SpawnEntry> lst = method_29950(worldIn, worldIn.getStructureAccessor(), worldIn.getChunkManager().getChunkGenerator(), enumcreaturetype, pos, worldIn.getBiome(pos));//  ((ChunkGenerator)worldIn.getChunkManager().getChunkGenerator()).getEntitySpawnList(, worldIn.getStructureAccessor(), enumcreaturetype, pos);
             if (lst != null && !lst.isEmpty())
             {
-                for (Biome.SpawnEntry spawnEntry : lst)
+                for (SpawnSettings.SpawnEntry spawnEntry : lst)
                 {
                     if (SpawnRestriction.getLocation(spawnEntry.type) == null)
                         continue; // vanilla bug
@@ -220,7 +221,7 @@ public class SpawnReporter
                             float f = (float) x + 0.5F;
                             float f1 = (float) z + 0.5F;
                             mob.refreshPositionAndAngles((double) f, (double) y, (double) f1, worldIn.random.nextFloat() * 360.0F, 0.0F);
-                            fits1 = worldIn.doesNotCollide(mob);
+                            fits1 = worldIn.isSpaceEmpty(mob);
                             EntityType etype = mob.getType();
 
                             for (int i = 0; i < 20; ++i)
@@ -236,7 +237,7 @@ public class SpawnReporter
                             }
                             mob.initialize(worldIn, worldIn.getLocalDifficulty(mob.getBlockPos()), SpawnReason.NATURAL, null, null);
                             // the code invokes onInitialSpawn after getCanSpawHere
-                            fits = fits1 && worldIn.doesNotCollide(mob);
+                            fits = fits1 && worldIn.isSpaceEmpty(mob);
                             if (fits)
                             {
                                 fits_true = true;

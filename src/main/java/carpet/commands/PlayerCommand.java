@@ -11,9 +11,9 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.command.arguments.DimensionArgumentType;
-import net.minecraft.command.arguments.RotationArgumentType;
-import net.minecraft.command.arguments.Vec3ArgumentType;
+import net.minecraft.command.argument.DimensionArgumentType;
+import net.minecraft.command.argument.RotationArgumentType;
+import net.minecraft.command.argument.Vec3ArgumentType;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.entity.player.PlayerEntity;
@@ -33,7 +33,7 @@ import java.util.Set;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
-import static net.minecraft.server.command.CommandSource.suggestMatching;
+import static net.minecraft.command.CommandSource.suggestMatching;
 
 public class PlayerCommand
 {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "quick-carpet",
-  "version": "1.1",
+  "version": "1.2",
 
   "name": "Quick Carpet",
   "description": "Tiny subset of most useful carpet features that is easy to maintain",
