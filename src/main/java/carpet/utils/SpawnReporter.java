@@ -148,23 +148,23 @@ public class SpawnReporter
     {
         if (entity.hasVehicle())
         {
-            entity.getVehicle().remove();
+            entity.getVehicle().remove(Entity.class_5529.field_26999);
         }
         if (entity.hasPassengers())
         {
             for (Entity e: entity.getPassengerList())
             {
-                e.remove();
+                e.remove(Entity.class_5529.field_26999);
             }
         }
         if (entity instanceof OcelotEntity)
         {
             for (Entity e: entity.getEntityWorld().getOtherEntities(entity, entity.getBoundingBox()))
             {
-                e.remove();
+                e.remove(Entity.class_5529.field_26999);
             }
         }
-        entity.remove();
+        entity.remove(Entity.class_5529.field_26999);
     }
 
     // yeeted from SpawnHelper - temporary fix
