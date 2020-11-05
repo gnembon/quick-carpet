@@ -68,6 +68,23 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
     }
 
     @Override
+    public void remove(class_5529 arg) {
+        // from player
+        this.playerScreenHandler.close(this);
+        if (this.currentScreenHandler != null) {
+            this.currentScreenHandler.close(this);
+        }
+        // deferring to offtick - not sure if its needed
+        // could check if its in ticking state, but that shouldn't make a difference
+        getServer().send(new ServerTask(getServer().getTicks(), () ->
+        {
+            method_31745(arg);
+            onTeleportationDone();
+        }));
+
+    }
+
+    @Override
     public void tick()
     {
         if (this.getServer().getTicks() % 10 == 0)
