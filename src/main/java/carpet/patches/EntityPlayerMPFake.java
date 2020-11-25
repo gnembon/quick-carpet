@@ -2,6 +2,7 @@ package carpet.patches;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.block.entity.SkullBlockEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntitySetHeadYawS2CPacket;
 import net.minecraft.entity.damage.DamageSource;
@@ -10,12 +11,10 @@ import net.minecraft.network.NetworkSide;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTask;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
 import carpet.utils.Messenger;
 
 @SuppressWarnings("EntityConstructor")
@@ -27,7 +26,6 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
     {
         //prolly half of that crap is not necessary, but it works
         ServerWorld worldIn = server.getWorld(dimensionId);
-        ServerPlayerInteractionManager interactionManagerIn = new ServerPlayerInteractionManager(worldIn);
         GameProfile gameprofile = server.getUserCache().findByName(username);
         if (gameprofile == null)
         {
@@ -37,15 +35,15 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         {
             gameprofile = SkullBlockEntity.loadProperties(gameprofile);
         }
-        EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, gameprofile, interactionManagerIn, false);
+        EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, gameprofile, false);
         instance.fixStartingPosition = () -> instance.refreshPositionAndAngles(d0, d1, d2, (float) yaw, (float) pitch);
         server.getPlayerManager().onPlayerConnect(new NetworkManagerFake(NetworkSide.SERVERBOUND), instance);
         instance.teleport(worldIn, d0, d1, d2, (float)yaw, (float)pitch);
         instance.setHealth(20.0F);
         //instance.removed = false;
-        instance.method_31482(); // set not removed
+        instance.unsetRemoved(); // set not removed
         instance.stepHeight = 0.6F;
-        interactionManagerIn.setGameMode(gamemode);
+        instance.interactionManager.setGameMode(gamemode);
         server.getPlayerManager().sendToDimension(new EntitySetHeadYawS2CPacket(instance, (byte) (instance.headYaw * 256 / 360)), dimensionId);//instance.dimension);
         server.getPlayerManager().sendToDimension(new EntityPositionS2CPacket(instance), dimensionId);//instance.dimension);
         instance.getServerWorld().getChunkManager().updateCameraPosition(instance);
@@ -53,11 +51,18 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         return instance;
     }
 
-    private EntityPlayerMPFake(MinecraftServer server, ServerWorld worldIn, GameProfile profile, ServerPlayerInteractionManager interactionManagerIn, boolean shadow)
+    private EntityPlayerMPFake(MinecraftServer server, ServerWorld worldIn, GameProfile profile, boolean shadow)
     {
-        super(server, worldIn, profile, interactionManagerIn);
+        super(server, worldIn, profile);
     }
 
+
+
+    @Override
+    protected void onEquipStack(ItemStack stack)
+    {
+        if (!isUsingItem()) super.onEquipStack(stack);
+    }
 
     @Override
     public void kill()
@@ -65,23 +70,6 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         this.server.send(new ServerTask(this.server.getTicks(), () -> {
             this.networkHandler.onDisconnected(Messenger.s("Killed"));
         }));
-    }
-
-    @Override
-    public void remove(class_5529 arg) {
-        // from player
-        this.playerScreenHandler.close(this);
-        if (this.currentScreenHandler != null) {
-            this.currentScreenHandler.close(this);
-        }
-        // deferring to offtick - not sure if its needed
-        // could check if its in ticking state, but that shouldn't make a difference
-        getServer().send(new ServerTask(getServer().getTicks(), () ->
-        {
-            method_31745(arg);
-            onTeleportationDone();
-        }));
-
     }
 
     @Override
