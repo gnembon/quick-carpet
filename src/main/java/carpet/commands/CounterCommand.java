@@ -42,7 +42,7 @@ public class CounterCommand
         HopperCounter counter = HopperCounter.getCounter(color);
         if (counter == null) throw new CommandException(Messenger.s("Unknown wool color: "+color));
 
-        for (BaseText message: counter.format(source.getMinecraftServer(), realtime, false))
+        for (BaseText message: counter.format(source.getServer(), realtime, false))
         {
             source.sendFeedback(message, false);
         }
@@ -53,14 +53,14 @@ public class CounterCommand
     {
         if (color == null)
         {
-            HopperCounter.resetAll(source.getMinecraftServer());
+            HopperCounter.resetAll(source.getServer());
             Messenger.m(source, "w Restarted all counters");
         }
         else
         {
             HopperCounter counter = HopperCounter.getCounter(color);
             if (counter == null) throw new CommandException(Messenger.s("Unknown wool color"));
-            counter.reset(source.getMinecraftServer());
+            counter.reset(source.getServer());
             Messenger.m(source, "w Restarted "+color+" counter");
         }
         return 1;
@@ -68,7 +68,7 @@ public class CounterCommand
 
     private static int listAllCounters(ServerCommandSource source, boolean realtime)
     {
-        for (BaseText message: HopperCounter.formatAll(source.getMinecraftServer(), realtime))
+        for (BaseText message: HopperCounter.formatAll(source.getServer(), realtime))
         {
             source.sendFeedback(message, false);
         }

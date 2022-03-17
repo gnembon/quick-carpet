@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "quick-carpet",
-  "version": "1.2",
+  "version": "1.4",
 
   "name": "Quick Carpet",
   "description": "Tiny subset of most useful carpet features that is easy to maintain",
@@ -26,10 +26,8 @@
   ],
 
   "depends": {
-    "fabricloader": ">=0.7.1",
-    "minecraft": "1.17.*"
-  },
-  "suggests": {
-    "flamingo": "*"
+    "fabricloader": ">=0.12.8",
+    "minecraft": "*",
+    "java": ">=17"
   }
 }

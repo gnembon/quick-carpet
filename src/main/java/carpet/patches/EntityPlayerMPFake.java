@@ -2,6 +2,7 @@ package carpet.patches;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.block.entity.SkullBlockEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntitySetHeadYawS2CPacket;
@@ -12,10 +13,13 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTask;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.UserCache;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
 import carpet.utils.Messenger;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("EntityConstructor")
 public class EntityPlayerMPFake extends ServerPlayerEntity
@@ -26,14 +30,21 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
     {
         //prolly half of that crap is not necessary, but it works
         ServerWorld worldIn = server.getWorld(dimensionId);
-        GameProfile gameprofile = server.getUserCache().findByName(username);
+        GameProfile gameprofile;
+        try {
+            gameprofile = server.getUserCache().findByName(username).orElse(null);
+        } finally {
+            UserCache.setUseRemote(server.isDedicated() && server.isOnlineMode());
+        }
         if (gameprofile == null)
         {
-            return null;
+            gameprofile = new GameProfile(PlayerEntity.getOfflinePlayerUuid(username), username);
         }
         if (gameprofile.getProperties().containsKey("textures"))
         {
-            gameprofile = SkullBlockEntity.loadProperties(gameprofile);
+            AtomicReference<GameProfile> result = new AtomicReference<>();
+            SkullBlockEntity.loadProperties(gameprofile, result::set);
+            gameprofile = result.get();
         }
         EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, gameprofile, false);
         instance.fixStartingPosition = () -> instance.refreshPositionAndAngles(d0, d1, d2, (float) yaw, (float) pitch);
@@ -43,10 +54,9 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         //instance.removed = false;
         instance.unsetRemoved(); // set not removed
         instance.stepHeight = 0.6F;
-        instance.interactionManager.setGameMode(gamemode);
+        instance.interactionManager.changeGameMode(gamemode);
         server.getPlayerManager().sendToDimension(new EntitySetHeadYawS2CPacket(instance, (byte) (instance.headYaw * 256 / 360)), dimensionId);//instance.dimension);
         server.getPlayerManager().sendToDimension(new EntityPositionS2CPacket(instance), dimensionId);//instance.dimension);
-        instance.getServerWorld().getChunkManager().updateCameraPosition(instance);
         instance.dataTracker.set(PLAYER_MODEL_PARTS, (byte) 0x7f); // show all model layers (incl. capes)
         return instance;
     }
@@ -78,10 +88,18 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         if (this.getServer().getTicks() % 10 == 0)
         {
             this.networkHandler.syncWithPlayerPosition();
-            this.getServerWorld().getChunkManager().updateCameraPosition(this);
+            this.getWorld().getChunkManager().updatePosition(this);
+            onTeleportationDone();
         }
-        super.tick();
-        this.playerTick();
+        try {
+            super.tick();
+            this.playerTick();
+        }
+        catch (NullPointerException ignored)
+        {
+            // happens with that paper port thingy - not sure what that would fix, but hey
+            // the game not gonna crash violently.
+        }
     }
 
     @Override
@@ -91,5 +109,11 @@ public class EntityPlayerMPFake extends ServerPlayerEntity
         setHealth(20);
         this.hungerManager = new HungerManager();
         kill();
+    }
+
+    @Override
+    public String getIp()
+    {
+        return "127.0.0.1";
     }
 }

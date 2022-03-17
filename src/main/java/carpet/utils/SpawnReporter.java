@@ -1,7 +1,6 @@
 
 package carpet.utils;
 
-import carpet.mixins.WeightedPickerEntryMixin;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
@@ -14,8 +13,11 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.OcelotEntity;
 import net.minecraft.text.BaseText;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryEntry;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.SpawnHelper;
@@ -25,7 +27,10 @@ import net.minecraft.world.biome.SpawnSettings;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
+import net.minecraft.world.gen.feature.ConfiguredStructureFeatureKeys;
+import net.minecraft.world.gen.feature.NetherFortressFeature;
 import net.minecraft.world.gen.feature.StructureFeature;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -168,8 +173,18 @@ public class SpawnReporter
     }
 
     // yeeted from SpawnHelper - temporary fix
-    private static List<SpawnSettings.SpawnEntry> method_29950(ServerWorld serverWorld, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, SpawnGroup spawnGroup, BlockPos blockPos, /*@Nullable*/ Biome biome) {
-        return spawnGroup == SpawnGroup.MONSTER && serverWorld.getBlockState(blockPos.down()).getBlock() == Blocks.NETHER_BRICKS && structureAccessor.getStructureAt(blockPos, false, StructureFeature.FORTRESS).hasChildren() ? StructureFeature.FORTRESS.getMonsterSpawns() : chunkGenerator.getEntitySpawnList(biome != null ? biome : serverWorld.getBiome(blockPos), structureAccessor, spawnGroup, blockPos);
+
+    public static boolean shouldUseNetherFortressSpawns(BlockPos pos, ServerWorld world, SpawnGroup spawnGroup, StructureAccessor structureAccessor) {
+        if (spawnGroup == SpawnGroup.MONSTER && world.getBlockState(pos.down()).isOf(Blocks.NETHER_BRICKS)) {
+            StructureFeature structureFeature = structureAccessor.method_41036().get(Registry.CONFIGURED_STRUCTURE_FEATURE_KEY).get(ConfiguredStructureFeatureKeys.FORTRESS);
+            return structureFeature == null ? false : structureAccessor.getStructureAt(pos, structureFeature).hasChildren();
+        } else {
+            return false;
+        }
+    }
+
+    private static Pool<SpawnSettings.SpawnEntry> getSpawnEntries(ServerWorld world, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, SpawnGroup spawnGroup, BlockPos pos, @Nullable RegistryEntry<Biome> biomeEntry) {
+        return shouldUseNetherFortressSpawns(pos, world, spawnGroup, structureAccessor) ? NetherFortressFeature.MONSTER_SPAWNS : chunkGenerator.getEntitySpawnList(biomeEntry != null ? biomeEntry : world.getBiome(pos), structureAccessor, spawnGroup, pos);
     }
 
     public static List<BaseText> report(BlockPos pos, ServerWorld worldIn)
@@ -187,7 +202,7 @@ public class SpawnReporter
         for (SpawnGroup enumcreaturetype : SpawnGroup.values())
         {
             String type_code = String.format("%s", enumcreaturetype).substring(0, 3);
-            List<SpawnSettings.SpawnEntry> lst = method_29950(worldIn, worldIn.getStructureAccessor(), worldIn.getChunkManager().getChunkGenerator(), enumcreaturetype, pos, worldIn.getBiome(pos));//  ((ChunkGenerator)worldIn.getChunkManager().getChunkGenerator()).getEntitySpawnList(, worldIn.getStructureAccessor(), enumcreaturetype, pos);
+            List<SpawnSettings.SpawnEntry> lst = getSpawnEntries(worldIn, worldIn.getStructureAccessor(), worldIn.getChunkManager().getChunkGenerator(), enumcreaturetype, pos, worldIn.getBiome(pos)).getEntries();
             if (lst != null && !lst.isEmpty())
             {
                 for (SpawnSettings.SpawnEntry spawnEntry : lst)
@@ -263,7 +278,7 @@ public class SpawnReporter
 
                     String creature_name = mob.getType().getName().getString();
                     String pack_size = String.format("%d", mob.getLimitPerChunk());//String.format("%d-%d", animal.minGroupCount, animal.maxGroupCount);
-                    int weight = ((WeightedPickerEntryMixin) spawnEntry).getWeight();
+                    int weight =  spawnEntry.getWeight().getValue();
                     if (canspawn)
                     {
                         String c = (fits_true && will_spawn > 0) ? "e" : "gi";

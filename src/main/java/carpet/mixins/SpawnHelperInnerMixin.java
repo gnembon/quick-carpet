@@ -3,6 +3,7 @@ package carpet.mixins;
 import carpet.utils.SpawnReporter;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.GravityField;
 import net.minecraft.world.SpawnHelper;
 import org.spongepowered.asm.mixin.Final;
@@ -24,11 +25,11 @@ public class SpawnHelperInnerMixin
     @Shadow @Final private Object2IntOpenHashMap<SpawnGroup> groupToCount;
 
     @Inject(method = "isBelowCap", at = @At("HEAD"), cancellable = true)
-    private void changeMobCaps(SpawnGroup entityCategory, CallbackInfoReturnable<Boolean> cir)
+    private void changeMobCaps(SpawnGroup group, ChunkPos chunkPos, CallbackInfoReturnable<Boolean> cir)
     {
-        int newCap = (int) ((double)entityCategory.getCapacity()*(Math.pow(2.0,(SpawnReporter.mobcap_exponent/4))));
+        int newCap = (int) ((double)group.getCapacity()*(Math.pow(2.0,(SpawnReporter.mobcap_exponent/4))));
         int i = newCap * spawningChunkCount / SpawnReporter.MAGIC_NUMBER;
-        cir.setReturnValue(groupToCount.getInt(entityCategory) < i);
+        cir.setReturnValue(groupToCount.getInt(group) < i);
     }
 
 }

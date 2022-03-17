@@ -68,7 +68,7 @@ public class PlayerCommand
     private static ServerPlayerEntity getPlayer(CommandContext<ServerCommandSource> context)
     {
         String playerName = StringArgumentType.getString(context, "player");
-        MinecraftServer server = context.getSource().getMinecraftServer();
+        MinecraftServer server = context.getSource().getServer();
         return server.getPlayerManager().getPlayer(playerName);
     }
 
@@ -90,7 +90,7 @@ public class PlayerCommand
             return false;
         }
 
-        if (!context.getSource().getMinecraftServer().getPlayerManager().isOperator(sendingPlayer.getGameProfile()))
+        if (!context.getSource().getServer().getPlayerManager().isOperator(sendingPlayer.getGameProfile()))
         {
             if (sendingPlayer != player && !(player instanceof EntityPlayerMPFake))
             {
@@ -113,7 +113,7 @@ public class PlayerCommand
     private static boolean cantSpawn(CommandContext<ServerCommandSource> context)
     {
         String playerName = StringArgumentType.getString(context, "player");
-        MinecraftServer server = context.getSource().getMinecraftServer();
+        MinecraftServer server = context.getSource().getServer();
         PlayerManager manager = server.getPlayerManager();
         PlayerEntity player = manager.getPlayer(playerName);
         if (player != null)
@@ -121,7 +121,7 @@ public class PlayerCommand
             Messenger.m(context.getSource(), "r Player ", "rb " + playerName, "r  is already logged on");
             return true;
         }
-        GameProfile profile = server.getUserCache().findByName(playerName);
+        GameProfile profile = server.getUserCache().findByName(playerName).orElse(null);
         if (manager.getUserBanList().contains(profile))
         {
             Messenger.m(context.getSource(), "r Player ", "rb " + playerName, "r  is banned");
@@ -184,7 +184,7 @@ public class PlayerCommand
         }
         catch (CommandSyntaxException ignored) {}
         String playerName = StringArgumentType.getString(context, "player");
-        MinecraftServer server = source.getMinecraftServer();
+        MinecraftServer server = source.getServer();
         PlayerEntity player = EntityPlayerMPFake.createFake(playerName, server, pos.x, pos.y, pos.z, facing.y, facing.x, dim, mode);
         if (player == null)
         {

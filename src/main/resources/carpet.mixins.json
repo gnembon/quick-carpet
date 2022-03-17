@@ -16,7 +16,6 @@
     "ServerPlayNetworkHandler_interactionUpdatesMixin",
     "MinecraftServer_tickspeedMixin",
     "ServerWorld_fakePlayersMixin",
-    "WeightedPickerEntryMixin",
     "PlayerManagerMixin",
     "ServerChunkManagerMixin",
     "HopperBlockEntityMixin",

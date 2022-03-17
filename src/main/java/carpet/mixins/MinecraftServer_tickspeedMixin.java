@@ -8,7 +8,8 @@ import net.minecraft.util.TickDurationMonitor;
 import net.minecraft.util.Util;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.util.thread.ReentrantThreadExecutor;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,8 +27,6 @@ public abstract class MinecraftServer_tickspeedMixin extends ReentrantThreadExec
 
     @Shadow private long timeReference;
 
-    @Shadow @Final private static Logger LOGGER;
-
     //@Shadow private boolean profilerStartQueued;
 
     @Shadow @Final private Profiler profiler;
@@ -41,19 +40,29 @@ public abstract class MinecraftServer_tickspeedMixin extends ReentrantThreadExec
 
     @Shadow protected abstract boolean shouldKeepTicking();
 
-    @Shadow private long field_19248;
+    //@Shadow private long field_19248;
 
-    @Shadow protected abstract void method_16208();
+    //@Shadow protected abstract void method_16208();
 
     @Shadow private volatile boolean loading;
 
-    @Shadow protected abstract void startMonitor(TickDurationMonitor monitor);
+    //@Shadow protected abstract void startMonitor(TickDurationMonitor monitor);
 
     @Shadow private long lastTimeReference;
     @Shadow private boolean waitingForNextTick;
 
     @Shadow public abstract Iterable<ServerWorld> getWorlds();
 
+    @Shadow private boolean needsDebugSetup;
+    @Shadow private boolean needsRecorderSetup;
+    @Shadow private int ticks;
+
+    @Shadow protected abstract void startTickMetrics();
+
+    @Shadow protected abstract void runTasksTillTickEnd();
+
+    @Shadow private long nextTickTimestamp;
+    @Shadow @Final private static Logger LOGGER;
     private float carpetMsptAccum = 0.0f;
 
     /**
@@ -109,10 +118,13 @@ public abstract class MinecraftServer_tickspeedMixin extends ReentrantThreadExec
                 this.lastTimeReference = this.timeReference;
             }
 
+            if (needsDebugSetup) {
+                this.needsDebugSetup = false;
+                this.profilerTimings = Pair.of(Util.getMeasuringTimeNano(), ticks);
+            }
+
             this.timeReference += msThisTick;//50L;
-            TickDurationMonitor monitor = TickDurationMonitor.create("Server");
-            startMonitor(monitor);
-            this.profiler.startTick();
+            startTickMetrics();
             this.profiler.push("tick");
             this.tick(TickSpeed.time_warp_start_time != 0 ? ()->true : this::shouldKeepTicking);
             this.profiler.swap("nextTickWait");
@@ -121,13 +133,16 @@ public abstract class MinecraftServer_tickspeedMixin extends ReentrantThreadExec
                 while(this.runEveryTask()) {Thread.yield();}
             }
             this.waitingForNextTick = true;
-            this.field_19248 = Math.max(Util.getMeasuringTimeMs() + /*50L*/ msThisTick, this.timeReference);
-            this.method_16208();
+            this.nextTickTimestamp = Math.max(Util.getMeasuringTimeMs() + /*50L*/ msThisTick, this.timeReference);
+            this.runTasksTillTickEnd();
             this.profiler.pop();
             this.profiler.endTick();
             this.loading = true;
         }
     }
+
+    // just because profilerTimings class is public
+    Pair<Long,Integer> profilerTimings = null;
 
     private boolean runEveryTask() {
         if (super.runTask()) {

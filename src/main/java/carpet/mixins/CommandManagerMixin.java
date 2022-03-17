@@ -3,9 +3,10 @@ package carpet.mixins;
 import carpet.CarpetServer;
 import carpet.CarpetSettings;
 import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.class_7157;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -25,7 +26,7 @@ public abstract class CommandManagerMixin
     private CommandDispatcher<ServerCommandSource> dispatcher;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void onRegister(CommandManager.RegistrationEnvironment environment, CallbackInfo ci) {
+    private void onRegister(CommandManager.RegistrationEnvironment environment, class_7157 arg, CallbackInfo ci) {
         CarpetServer.registerCarpetCommands(this.dispatcher);
     }
 
@@ -45,12 +46,12 @@ public abstract class CommandManagerMixin
     @SuppressWarnings("UnresolvedMixinReference")
     @Redirect(method = "execute", at = @At(
             value = "INVOKE",
-            target = "Lorg/apache/logging/log4j/Logger;isDebugEnabled()Z"
+            target = "Lorg/slf4j/Logger;isDebugEnabled()Z"
     ))
-    private boolean doesOutputCommandStackTrace(Logger logger)
+    private boolean doesOutputCommandStackTrace(Logger instance)
     {
         if (CarpetSettings.superSecretSetting)
             return true;
-        return logger.isDebugEnabled();
+        return instance.isDebugEnabled();
     }
 }

@@ -72,7 +72,7 @@ public class TickCommand
         catch (CommandSyntaxException ignored)
         {
         }
-        BaseText message = TickSpeed.tickrate_advance(source.getMinecraftServer(), player, advance, tail_command, source);
+        BaseText message = TickSpeed.tickrate_advance(source.getServer(), player, advance, tail_command, source);
         if (message != null)
         {
             source.sendFeedback(message, false);
@@ -98,7 +98,7 @@ public class TickCommand
     {
         Messenger.m(source, String.format(
                 "w Avg tick time: %.2f ms",
-                average(source.getMinecraftServer().lastTickLengths) * 1.0E-6D)
+                average(source.getServer().lastTickLengths) * 1.0E-6D)
         );
         return 1;
     }
